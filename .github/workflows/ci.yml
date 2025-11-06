@@ -1,4 +1,4 @@
-name: CI - build & push & update-manifests
+name: CI - Build & Push & Update Manifests
 
 on:
   push:
@@ -8,42 +8,50 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: false
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-    - name: Set up QEMU (for docker buildx)
-      uses: docker/setup-qemu-action@v2
+      # 2️⃣ Set up QEMU (required for Docker Buildx)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      # 3️⃣ Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v1
-      with:
-        credentials_json: ${{ secrets.GCP_SA_KEY }}
+      # 4️⃣ Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    - name: Configure docker for gcr
-      run: |
-        gcloud --quiet auth configure-docker
+      # 5️⃣ Configure Docker for Artifact Registry
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
-    - name: Build and push image
-      id: build
-      run: |
-        IMAGE=gcr.io/sirisha-test1/backend:${GITHUB_SHA::7}
-        docker build -t $IMAGE .
-        docker push $IMAGE
-        echo "IMAGE=$IMAGE" >> $GITHUB_OUTPUT
+      # 6️⃣ Build and push Docker image to Artifact Registry
+      - name: Build and push Docker image
+        id: build
+        run: |
+          IMAGE=us-central1-docker.pkg.dev/sirisha-test1/backend/backend:${GITHUB_SHA::7}
+          echo "Building Docker image: $IMAGE"
+          docker build -t $IMAGE .
+          docker push $IMAGE
+          echo "IMAGE=$IMAGE" >> $GITHUB_OUTPUT
 
-    - name: Update k8s manifest with new image
-      run: |
-        IMAGE=us-central1-docker.pkg.dev/sirisha-test1/backend/backend:${GITHUB_SHA::7}
-        sed -i "s|gcr.io/sirisha-test1/backend:PLACEHOLDER_TAG|${IMAGE}|g" k8s/deployment.yaml
-        git config user.email "action@github.com"
-        git config user.name "github-actions"
-        git add k8s/deployment.yaml
-        git commit -m "ci: update k8s image to ${IMAGE}" || echo "no changes to commit"
-        git push
-
+      # 7️⃣ Update Kubernetes manifest with new image
+      - name: Update k8s deployment manifest
+        run: |
+          IMAGE=us-central1-docker.pkg.dev/sirisha-test1/backend/backend:${GITHUB_SHA::7}
+          sed -i "s|PLACEHOLDER_TAG|${IMAGE}|g" k8s/deployment.yaml
+          git config user.email "action@github.com"
+          git config user.name "github-actions"
+          git add k8s/deployment.yaml
+          git commit -m "ci: update k8s image to ${IMAGE}" || echo "No changes to commit"
+          git push
