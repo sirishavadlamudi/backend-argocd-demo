@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: gcr.io/sirisha-test1/backend:PLACEHOLDER_TAG
+        image: us-central1-docker.pkg.dev/sirisha-test1/backend/backend:PLACEHOLDER_TAG
         ports:
         - containerPort: 8080
 

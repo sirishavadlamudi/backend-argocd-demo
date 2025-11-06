@@ -39,7 +39,7 @@ jobs:
 
     - name: Update k8s manifest with new image
       run: |
-        IMAGE=gcr.io/sirisha-test1/backend:${GITHUB_SHA::7}
+        IMAGE=us-central1-docker.pkg.dev/sirisha-test1/backend/backend:${GITHUB_SHA::7}
         sed -i "s|gcr.io/sirisha-test1/backend:PLACEHOLDER_TAG|${IMAGE}|g" k8s/deployment.yaml
         git config user.email "action@github.com"
         git config user.name "github-actions"
